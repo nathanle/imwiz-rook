@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gunicorn-config
+  namespace: imwiz
+data:
+  gunicorn.conf.py: |
+   bind = "0.0.0.0:8000"
+   workers = 30 
+   threads = 90 
+   #certfile = '/home/django/django/im/config/certs/tls.crt'
+   #keyfile = '/home/django/django/im/config/certs/tls.key'
+   graceful_timeout = 90
+   max_requests = 500
+   max_requests_jitter = 25

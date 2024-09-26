@@ -1,0 +1,16 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+  name: imagetransform-metrics-service 
+  namespace: imwiz 
+spec:
+  endpoints:
+  - interval: 15s
+    port: metrics-1
+  - interval: 15s
+    port: metrics-2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: imagetransform-metrics-service

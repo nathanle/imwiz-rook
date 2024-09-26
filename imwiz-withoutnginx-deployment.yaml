@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagetransform-deployment
+  namespace: imwiz
+spec:
+  selector:
+    matchLabels:
+      app: imagetransform
+  template:
+    metadata:
+      labels:
+        app: imagetransform
+    spec:
+      terminationGracePeriodSeconds: 90
+      containers:
+      - name: imagetransform
+        image: nathanles/django-imagetransform_service:nohttps
+        resources:
+          limits:
+            #memory: "4000000000Ki"
+            cpu: 30 
+            memory: "65852888Ki"
+          requests:
+            memory: "25897018079"
+            #memory: "19537920"
+            cpu: 30 
+        envFrom:
+        - secretRef:
+            name: imagetransform-secrets
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: webcerts
+          mountPath: "/home/django/django/im/config/certs"
+          readOnly: true
+        - name: config
+          mountPath: "/home/django/django/im/config/gunicorn"
+          readOnly: true
+        imagePullPolicy: Always
+      imagePullSecrets:
+      - name: regcred
+      volumes:
+      - name: webcerts
+        secret:
+          secretName: secrets-webcerts
+      - name: config
+        configMap:
+          name: gunicorn-config
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: imagetransform
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: imagetransform-service
+  namespace: imwiz
+spec:
+  type: LoadBalancer 
+  selector:
+    app: imagetransform
+  ports:
+    - name: imagetransform 
+      port: 80
+      targetPort: 8000

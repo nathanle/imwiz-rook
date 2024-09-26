@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/ssl-passthrough: "true"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"ingress.kubernetes.io/ssl-passthrough":"true","nginx.ingress.kubernetes.io/backend-protocol":"HTTPS","nginx.org/ssl-services":"kubernetes-dashboard"},"name":"imwiz-ingress","namespace":"default"},"spec":{"ingressClassName":"nginx","rules":[{"host":"imvpa.cogitoergosum.io","http":{"paths":[{"backend":{"service":{"name":"imagetransfrom-service","port":{"number":8000}}},"path":"/","pathType":"Prefix"}]}}],"tls":[{"hosts":["imvpa.cogitoergosum.io"],"secretName":"secrets-webcerts"}]}}
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+    nginx.org/ssl-services: kubernetes-dashboard
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Cache-Status $upstream_cache_status;
+  generation: 3
+  name: imwiz-ingress
+  namespace: default
+  uid: d7b80442-c4ab-4928-bddd-72263ff894a6
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: imvpa.cogitoergosum.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: imagetransfrom-service
+            port:
+              number: 8000
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - imvpa.cogitoergosum.io
+    secretName: secrets-webcerts
+status:
+  loadBalancer:
+    ingress:
+    - hostname: 172-233-210-83.ip.linodeusercontent.com
+      ip: 172.233.210.83

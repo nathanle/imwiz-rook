@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagetransform-deployment
+  namespace: imwiz
+spec:
+  selector:
+    matchLabels:
+      app: imagetransform
+  template:
+    metadata:
+      labels:
+        app: imagetransform
+    spec:
+      terminationGracePeriodSeconds: 90
+      containers:
+      - name: imagetransform
+        image: nathanles/django-imagetransform_service:epihc
+        resources:
+          #limits:
+            #memory: "4000000000Ki"
+            #memory: "32876992Ki"
+            #memory: "8041792Ki"
+          requests:
+            #memory: "25897018079"
+            #memory: "7000000Ki"
+            #cpu: 14
+            cpu: 3
+        envFrom:
+        - secretRef:
+            name: imagetransform-secrets
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: webcerts
+          mountPath: "/home/django/django/im/config/certs"
+          readOnly: true
+        - name: config
+          mountPath: "/home/django/django/im/config/gunicorn"
+          readOnly: true
+        imagePullPolicy: Always
+      imagePullSecrets:
+      - name: regcred
+      volumes:
+      - name: webcerts
+        secret:
+          secretName: secrets-webcerts
+      - name: config
+        configMap:
+          name: gunicorn-config
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: imagetransform
+---
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: nginx-pod
+  namespace: imwiz
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx 
+  template:
+    metadata:
+      labels:
+        app: nginx 
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:latest
+        #image: nathanles/nginx-s3-gateway:oss 
+        envFrom:
+        - secretRef:
+            name: nginx-s3-secrets 
+        ports:
+          - containerPort: 443
+        volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx/conf.d/
+          readOnly: true
+        - name: cache 
+          mountPath: /data/nginx/cache 
+          readOnly: false 
+        - name: nginx-webcerts
+          mountPath: "/etc/nginx/certs/"
+          readOnly: true
+      imagePullSecrets:
+      - name: regcred
+      volumes:
+      - name: nginx-webcerts
+        secret:
+          secretName: nginx-webcerts
+      - name: nginx-conf
+        configMap:
+          name: nginx-conf
+          items:
+            - key: imwiz.conf
+              path: imwiz.conf 
+      - name: cache
+        persistentVolumeClaim:
+          claimName: rook-nfs-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: imwiz
+spec:
+  type: LoadBalancer 
+  selector:
+    app: nginx 
+  ports:
+    - name: nginx 
+      port: 443
+      targetPort: 443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: imagetransform-service
+  namespace: imwiz
+spec:
+  type: ClusterIP 
+  selector:
+    app: imagetransform
+  ports:
+    - name: imagetransform 
+      port: 8000
+      targetPort: 8000
